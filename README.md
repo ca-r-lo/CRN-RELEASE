@@ -5,48 +5,58 @@ This guide is for installing DMS on a Windows PC from the public release reposit
 ## What You Need
 
 - Windows 10 or Windows 11.
-- The latest DMS release files:
-  - `DMS-Setup-vX.Y.Z.exe`
-  - `DMS_Publisher.cer`
-  - `Install-DMS.ps1`
+- The latest `DMS-vX.Y.Z-release.zip`.
 - An internet connection for GitHub download and in-app updates.
 - Administrator approval may be required when the installer writes to `Program Files`.
 
 ## First-Time Install
 
-Download these three files from the latest public GitHub release and keep them in the same folder:
+Download `DMS-vX.Y.Z-release.zip` from the latest public GitHub release and extract it.
+
+For the easiest install, double-click:
+
+```text
+Install-DMS.cmd
+```
+
+If Windows shows an `Open File - Security Warning` for `Install-DMS.cmd`, select `Run`. The launcher removes the downloaded-from-internet warning from the extracted DMS files, asks for administrator approval, installs publisher trust, verifies that the installer is signed by the trusted DMS publisher certificate, then starts the installer. If Windows blocks machine-wide certificate trust, the launcher retries with current-user trust automatically.
+
+The extracted folder should contain:
 
 ```text
 DMS-Setup-vX.Y.Z.exe
-DMS_Publisher.cer
-Install-DMS.ps1
+Install-DMS.cmd
+_DMS_Setup_Files\
 ```
 
-Open PowerShell in that folder.
+The `_DMS_Setup_Files` folder contains the certificate and PowerShell helper used by the launcher. Users should leave that folder in place.
 
-For the internal self-signed DMS certificate, run:
+## PowerShell Install
+
+If the one-click launcher cannot be used, open PowerShell in the extracted folder.
+
+For the internal self-signed DMS certificate, run PowerShell as Administrator:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Install-DMS.ps1 -CertificatePath ".\DMS_Publisher.cer" -InstallerPath ".\DMS-Setup-vX.Y.Z.exe" -TrustAsRoot
+.\_DMS_Setup_Files\Install-DMS.ps1 -CertificatePath ".\_DMS_Setup_Files\DMS_Publisher.cer" -InstallerPath ".\DMS-Setup-vX.Y.Z.exe" -StoreScope LocalMachine -TrustAsRoot
 ```
 
 For a public CA-issued certificate, run without `-TrustAsRoot`:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Install-DMS.ps1 -CertificatePath ".\DMS_Publisher.cer" -InstallerPath ".\DMS-Setup-vX.Y.Z.exe"
+.\_DMS_Setup_Files\Install-DMS.ps1 -CertificatePath ".\_DMS_Setup_Files\DMS_Publisher.cer" -InstallerPath ".\DMS-Setup-vX.Y.Z.exe"
 ```
 
-The script installs publisher trust, verifies that the installer is signed by the trusted DMS publisher certificate, then starts the installer.
+The script performs the same checks as `Install-DMS.cmd`.
 
 ## Offline or USB Install
 
-Copy the three release files to the target PC, then run the same first-time install command from that folder:
+Copy the extracted release folder to the target PC, then double-click:
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Install-DMS.ps1 -CertificatePath ".\DMS_Publisher.cer" -InstallerPath ".\DMS-Setup-vX.Y.Z.exe" -TrustAsRoot
+```text
+Install-DMS.cmd
 ```
 
 ## App Activation
@@ -87,11 +97,15 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This only affects the current PowerShell window.
 
+If the one-click launcher opens and closes quickly, right-click `Install-DMS.cmd` and choose `Run as administrator`, or open it from an Administrator Command Prompt to see the message.
+
 If Windows still warns during first install:
 
 - Make sure `DMS_Publisher.cer` came from the same release as the installer.
 - Use `-TrustAsRoot` only for the internal self-signed DMS certificate.
 - Do not continue if the script reports a signer mismatch.
+- If SmartScreen still appears after using `Install-DMS.cmd`, the installer may still be signed by an old/untrusted certificate. Rebuild with a PFX whose certificate is `CN=LCS Software Systems`.
+- If the script reports `Access is denied` while installing to `Cert:\LocalMachine`, use the latest `Install-DMS.cmd`; it falls back to `Cert:\CurrentUser`.
 
 If in-app update says `DMS_Publisher.cer` is missing:
 
@@ -117,7 +131,17 @@ Upload these files from `Output\vX.Y.Z` to the public release:
 ```text
 DMS-Setup-vX.Y.Z.exe
 DMS_Publisher.cer
+Install-DMS.cmd
 Install-DMS.ps1
+DMS-vX.Y.Z-release.zip
+```
+
+The manual ZIP should show only the launcher and installer at the top level:
+
+```text
+DMS-Setup-vX.Y.Z.exe
+Install-DMS.cmd
+_DMS_Setup_Files\
 ```
 
 Never upload source code, private keys, `.pfx` files, activation private keys, databases, backup files, or the `secrets` folder.
